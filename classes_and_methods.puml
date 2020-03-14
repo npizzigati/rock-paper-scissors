@@ -1,0 +1,25 @@
+' Narrative description of rock-paper-scissors
+' P1 and P2 simultaneously display r, p, or s
+' winner: r beats s beats p beats r
+' same is tie
+
+' nouns: player, move, rule
+' verbs: move, choose, compare
+
+@startuml
+scale 2
+class Player {
+  {field} name 
+  {method} choose
+}
+
+class Move {
+  {field} type 
+  {method} compare 
+}
+
+' Orchestration engine
+class RPSGame {
+  {method} play  
+}
+@enduml
