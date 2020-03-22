@@ -5,30 +5,30 @@ require_relative 'test_helper.rb'
 include IoTestHelpers
 
 class WeaponTest < Minitest::Test
-  attr_reader :weapon1, :weapon2
-  def setup
-    @weapon1 = Weapon.new(:rock)
-    @weapon2 = Weapon.new(:scissors)
-  end
+#   attr_reader :weapon1, :weapon2
+#   def setup
+#     @weapon1 = Weapon.new(:rock)
+#     @weapon2 = Weapon.new(:scissors)
+#   end
 
-  def test_greater_than
-    expected = true
-    actual = weapon1 > weapon2
-    assert_equal(expected, actual)
-  end
+#   def test_greater_than
+#     expected = true
+#     actual = weapon1 > weapon2
+#     assert_equal(expected, actual)
+#   end
 
-  def test_to_s
-    expected = 'rock'
-    actual = weapon1.to_s
-    assert_equal(expected, actual)
-  end
+#   def test_to_s
+#     expected = 'rock'
+#     actual = weapon1.to_s
+#     assert_equal(expected, actual)
+#   end
 end
 
 class RPSGameTest < Minitest::Test
   def setup
     @game = RPSGame.new
-    @weapon1 = Weapon.new(:rock)
-    @weapon2 = Weapon.new(:scissors)
+    @weapon1 = Rock.new
+    @weapon2 = Scissors.new
     @game.player1.weapon = @weapon1
     @game.player2.weapon = @weapon2
   end
@@ -50,13 +50,13 @@ class RPSGameTest < Minitest::Test
 end
 
 class HumanTest < Minitest::Test
-  def test_obtain_choice
+  def test_obtain_user_input
     me = Human.new('Human')
-    expected = :rock 
-    actual = simulate_stdin('r') { me.obtain_choice }
+    expected = 'rock' 
+    actual = simulate_stdin('r') { me.obtain_user_input }
 
-    assert_instance_of(Weapon, actual)
-    assert_equal(expected, actual.type)
+    assert_instance_of(Rock, actual)
+    assert_equal(expected, actual.to_s)
   end
 end
 

@@ -23,69 +23,94 @@ module Validator
       array[0..-2].join(', ') + " or " + array[-1]
     end
   end
-
 end
 
 class Weapon
-  attr_reader :type
-
-  def initialize(type)
-    @type = type
-  end
-
-  def >(other)
-    self.rock? && other.scissors? ||
-      self.paper? && other.rock? ||
-      self.scissors? && other.paper?
-  end
-
   def to_s
-    type.to_s
-  end
-
-  protected
-
-  def rock?
-    type == :rock
-  end
-
-  def paper?
-    type == :paper
-  end
-
-  def scissors?
-    type == :scissors
+    self.class.name.downcase
   end
 end
 
+class Rock < Weapon
+  def >(other)
+    other.to_s == 'scissors'
+  end
+end
+
+class Scissors < Weapon
+  def >(other)
+    other.to_s == 'paper'
+  end
+end
+
+class Paper < Weapon
+  def >(other)
+    other.to_s == 'rock'
+  end
+end
+
+# class Weapon
+#   attr_reader :type
+
+#   def initialize(type)
+#     @type = type
+#   end
+
+#   def >(other)
+#     self.rock? && other.scissors? ||
+#       self.paper? && other.rock? ||
+#       self.scissors? && other.paper?
+#   end
+
+#   def to_s
+#     type.to_s
+#   end
+
+#   protected
+
+#   def rock?
+#     type == :rock
+#   end
+
+#   def paper?
+#     type == :paper
+#   end
+
+#   def scissors?
+#     type == :scissors
+#   end
+# end
+
 class Player
-  WEAPONS = { r: Weapon.new(:rock),
-              s: Weapon.new(:scissors),
-              p: Weapon.new(:paper) }
+  WEAPONS = [Rock.new, Paper.new, Scissors.new] 
   attr_accessor :name, :weapon, :score
 
   def initialize(name)
-    @name = name
-    @score = 0
+    self.name = name
+    self.score = 0
+  end
+
+  def to_s
+    name
   end
 end
 
 class Human < Player
   include Validator
   def choose
-    @weapon = obtain_choice
+    self.weapon = obtain_user_input
   end
 
-  def obtain_choice
+  def obtain_user_input
     choice = input("Your choice: (r)ock, (p)aper, (s)cissors",
                    %w(r p s))
-    WEAPONS[choice.to_sym]
+    WEAPONS[%w(r p s).index(choice)]
   end
 end
 
 class Computer < Player
   def choose
-    @weapon = WEAPONS.values.sample
+    @weapon = WEAPONS.sample
   end
 end
 
@@ -136,4 +161,8 @@ class RPSGame
   def display_goodbye
     puts "Thanks for playing!"
   end
+end
+
+if __FILE__ == $PROGRAM_NAME
+  RPSGame.new.play
 end
