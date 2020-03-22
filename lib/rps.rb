@@ -27,59 +27,40 @@ end
 
 class Weapon
   def to_s
-    self.class.name.downcase
+    name = self.class.name
+    name == 'Spock' ? name : name.downcase
   end
 end
 
 class Rock < Weapon
   def >(other)
-    other.to_s == 'scissors'
+    %w(scissors lizard).include? other.to_s
   end
 end
 
 class Scissors < Weapon
   def >(other)
-    other.to_s == 'paper'
+    %w(paper lizard).include? other.to_s
   end
 end
 
 class Paper < Weapon
   def >(other)
-    other.to_s == 'rock'
+    %w(rock Spock).include? other.to_s
   end
 end
 
-# class Weapon
-#   attr_reader :type
+class Lizard < Weapon
+  def >(other)
+    %w(Spock paper).include? other.to_s
+  end
+end
 
-#   def initialize(type)
-#     @type = type
-#   end
-
-#   def >(other)
-#     self.rock? && other.scissors? ||
-#       self.paper? && other.rock? ||
-#       self.scissors? && other.paper?
-#   end
-
-#   def to_s
-#     type.to_s
-#   end
-
-#   protected
-
-#   def rock?
-#     type == :rock
-#   end
-
-#   def paper?
-#     type == :paper
-#   end
-
-#   def scissors?
-#     type == :scissors
-#   end
-# end
+class Spock < Weapon
+  def >(other)
+    %w(rock scissors).include? other.to_s
+  end
+end
 
 class Player
   WEAPONS = [Rock.new, Paper.new, Scissors.new] 
@@ -102,9 +83,9 @@ class Human < Player
   end
 
   def obtain_user_input
-    choice = input("Your choice: (r)ock, (p)aper, (s)cissors",
-                   %w(r p s))
-    WEAPONS[%w(r p s).index(choice)]
+    choice = input("Your choice: (r)ock, (p)aper, (s)cissors, (l)izard, (S)pock",
+                   %w(r p s l S))
+    WEAPONS[%w(r p s l S).index(choice)]
   end
 end
 
