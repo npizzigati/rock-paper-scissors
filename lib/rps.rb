@@ -63,7 +63,7 @@ class Spock < Weapon
 end
 
 class Player
-  WEAPONS = [Rock.new, Paper.new, Scissors.new] 
+  WEAPONS = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new] 
   attr_accessor :name, :weapon, :score
 
   def initialize(name)
