@@ -4,33 +4,33 @@ require_relative 'test_helper.rb'
 
 include IoTestHelpers
 
-class WeaponTest < Minitest::Test
-#   attr_reader :weapon1, :weapon2
-#   def setup
-#     @weapon1 = Weapon.new(:rock)
-#     @weapon2 = Weapon.new(:scissors)
-#   end
+class MoveTest < Minitest::Test
+  attr_reader :move1, :move2
+  def setup
+    @move1 = Rock.new
+    @move2 = Scissors.new
+  end
 
-#   def test_greater_than
-#     expected = true
-#     actual = weapon1 > weapon2
-#     assert_equal(expected, actual)
-#   end
+  def test_greater_than
+    expected = true
+    actual = move1 > move2
+    assert_equal(expected, actual)
+  end
 
-#   def test_to_s
-#     expected = 'rock'
-#     actual = weapon1.to_s
-#     assert_equal(expected, actual)
-#   end
+  def test_to_s
+    expected = 'rock'
+    actual = move1.to_s
+    assert_equal(expected, actual)
+  end
 end
 
 class RPSGameTest < Minitest::Test
   def setup
     @game = RPSGame.new
-    @weapon1 = Rock.new
-    @weapon2 = Scissors.new
-    @game.player1.weapon = @weapon1
-    @game.player2.weapon = @weapon2
+    @move1 = Rock.new
+    @move2 = Scissors.new
+    @game.player1.move = @move1
+    @game.player2.move = @move2
   end
 
   def test_score_increment

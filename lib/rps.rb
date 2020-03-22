@@ -25,46 +25,47 @@ module Validator
   end
 end
 
-class Weapon
+class Move
   def to_s
     name = self.class.name
     name == 'Spock' ? name : name.downcase
   end
 end
 
-class Rock < Weapon
+class Rock < Move
   def >(other)
     %w(scissors lizard).include? other.to_s
   end
 end
 
-class Scissors < Weapon
+class Scissors < Move
   def >(other)
     %w(paper lizard).include? other.to_s
   end
 end
 
-class Paper < Weapon
+class Paper < Move
   def >(other)
     %w(rock Spock).include? other.to_s
   end
 end
 
-class Lizard < Weapon
+class Lizard < Move
   def >(other)
     %w(Spock paper).include? other.to_s
   end
 end
 
-class Spock < Weapon
+class Spock < Move
   def >(other)
     %w(rock scissors).include? other.to_s
   end
 end
 
 class Player
-  WEAPONS = [Rock.new, Paper.new, Scissors.new, Lizard.new, Spock.new] 
-  attr_accessor :name, :weapon, :score
+  MOVES = [Rock.new, Paper.new, Scissors.new,
+             Lizard.new, Spock.new] 
+  attr_accessor :name, :move, :score
 
   def initialize(name)
     self.name = name
@@ -79,19 +80,19 @@ end
 class Human < Player
   include Validator
   def choose
-    self.weapon = obtain_user_input
+    self.move = obtain_user_input
   end
 
   def obtain_user_input
     choice = input("Your choice: (r)ock, (p)aper, (s)cissors, (l)izard, (S)pock",
                    %w(r p s l S))
-    WEAPONS[%w(r p s l S).index(choice)]
+    MOVES[%w(r p s l S).index(choice)]
   end
 end
 
 class Computer < Player
   def choose
-    @weapon = WEAPONS.sample
+    @move = MOVES.sample
   end
 end
 
@@ -122,12 +123,12 @@ class RPSGame
   end
 
   def fight
-    puts "#{player1.name} plays #{player1.weapon}"
-    puts "#{player2.name} plays #{player2.weapon}"
-    if player1.weapon > player2.weapon
+    puts "#{player1.name} plays #{player1.move}"
+    puts "#{player2.name} plays #{player2.move}"
+    if player1.move > player2.move
       puts "#{player1.name} wins!"
       player1.score += 1
-    elsif player2.weapon > player1.weapon
+    elsif player2.move > player1.move
       puts "#{player2.name} wins!"
       player2.score += 1
     else
