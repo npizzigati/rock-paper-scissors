@@ -40,21 +40,29 @@ class RPSGameTest < Minitest::Test
     assert_equal(expected, actual)
   end
 
+  def test_display_gory_details
+    expected = /cuts|covers|crushes|poisons|smashes|decapitates|
+                eats|disproves|vaporizes|crushes/x
+    winner, loser = [@game.player1.move.to_s,
+                     @game.player2.move.to_s]
+    actual = @game.display_gory_details(winner, loser)
+    assert_match(expected, actual)
+  end
+
   def test_play_final_score
     while @game.player1.score < 10 && @game.player2.score < 10
       @game.fight
     end
-    @game.winner = @game.player1.score == 10 ? @game.player1 : @game.player2
-    refute_equal(nil, @game.winner)
+    @game.match_winner = @game.player1.score == 10 ? @game.player1 : @game.player2
+    refute_equal(nil, @game.match_winner)
   end
 end
 
 class HumanTest < Minitest::Test
   def test_obtain_user_input
     me = Human.new('Human')
-    expected = 'rock' 
+    expected = 'rock'
     actual = simulate_stdin('r') { me.obtain_user_input }
-
     assert_instance_of(Rock, actual)
     assert_equal(expected, actual.to_s)
   end
@@ -68,7 +76,7 @@ class ValidatorTest < Minitest::Test
     actual = prettier_print(array)
     assert_equal(expected, actual)
   end
-  
+
   def test_prettier_print_3_items
     array = %w(y n q)
     expected = 'y, n or q'

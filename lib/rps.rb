@@ -64,7 +64,7 @@ end
 
 class Player
   MOVES = [Rock.new, Paper.new, Scissors.new,
-             Lizard.new, Spock.new] 
+             Lizard.new, Spock.new]
   attr_accessor :name, :move, :score
 
   def initialize(name)
@@ -98,14 +98,14 @@ end
 
 # Orchestration engine
 class RPSGame
-  attr_accessor :player1, :player2, :winner
+  attr_accessor :player1, :player2, :match_winner
 
   def initialize
     # TODO: add names for human and computer
     # ask human and select randomly for computer
     @player1 = Human.new('Human')
     @player2 = Computer.new('Computer')
-    @winner = nil
+    @match_winner = nil
   end
 
   def play
@@ -116,24 +116,39 @@ class RPSGame
       fight
       #TODO: play again? message
     end
-    winner = player1.score == 10 ? player1 : player2
+    match_winner = player1.score == 10 ? player1 : player2
     puts "p1: #{player1.score}   p2: #{player2.score}"
-    puts "winner: #{winner}"
+    puts "winner: #{match_winner}"
     display_goodbye
   end
 
   def fight
     puts "#{player1.name} plays #{player1.move}"
     puts "#{player2.name} plays #{player2.move}"
-    if player1.move > player2.move
-      puts "#{player1.name} wins!"
-      player1.score += 1
-    elsif player2.move > player1.move
-      puts "#{player2.name} wins!"
-      player2.score += 1
-    else
+    if player1.move == player2.move
       puts "Tie!"
+      return
+    elsif player1.move > player2.move
+      winner, loser = [player1, player2]
+    else
+      winner, loser = [player2, player1]
     end
+      puts display_gory_details(winner.move.to_s, loser.move.to_s)
+      puts "#{winner.name} wins!"
+      winner.score += 1
+  end
+
+  def display_gory_details(winner, loser)
+    details = ["scissors cuts paper", "paper covers rock",
+               "rock crushes lizard", "lizard poisons Spock",
+               "Spock smashes scissors", "scissors decapitates lizard",
+               "lizard eats paper", "paper disproves Spock",
+               "Spock vaporizes rock", "rock crushes scissors"]
+    details.filter do |e|
+      words = e.split
+      words[0] == winner \
+      && words[2] == loser
+    end[0]
   end
 
   def display_welcome
