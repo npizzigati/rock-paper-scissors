@@ -116,6 +116,7 @@ class RPSGame
       fight
       #TODO: play again? message
     end
+
     match_winner = player1.score == 10 ? player1 : player2
     puts "p1: #{player1.score}   p2: #{player2.score}"
     puts "winner: #{match_winner}"
