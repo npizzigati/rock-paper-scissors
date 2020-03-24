@@ -1,5 +1,3 @@
-require 'io/console'
-
 module Validator
   def input(prompt, possible)
     puts prompt
@@ -22,6 +20,12 @@ module Validator
     when (3...)
       array[0..-2].join(', ') + " or " + array[-1]
     end
+  end
+end
+
+class CLIView
+  def display_gory_details(gory_details)
+    puts gory_details
   end
 end
 
@@ -98,14 +102,15 @@ end
 
 # Orchestration engine
 class RPSGame
-  attr_accessor :player1, :player2, :match_winner
+  attr_accessor :player1, :player2, :match_winner, :view
 
-  def initialize
+  def initialize(view)
     # TODO: add names for human and computer
     # ask human and select randomly for computer
     @player1 = Human.new('Human')
     @player2 = Computer.new('Computer')
     @match_winner = nil
+    @view = view
   end
 
   def play
@@ -134,12 +139,14 @@ class RPSGame
     else
       winner, loser = [player2, player1]
     end
-      puts display_gory_details(winner.move.to_s, loser.move.to_s)
-      puts "#{winner.name} wins!"
-      winner.score += 1
+    gory_details = retrieve_gory_details(winner.move.to_s,
+                                         loser.move.to_s)
+    view.display_gory_details(gory_details)
+    puts "#{winner.name} wins!"
+    winner.score += 1
   end
 
-  def display_gory_details(winner, loser)
+  def retrieve_gory_details(winner, loser)
     details = ["scissors cuts paper", "paper covers rock",
                "rock crushes lizard", "lizard poisons Spock",
                "Spock smashes scissors", "scissors decapitates lizard",
@@ -161,6 +168,7 @@ class RPSGame
   end
 end
 
+
 if __FILE__ == $PROGRAM_NAME
-  RPSGame.new.play
+  RPSGame.new(CLIView.new).play
 end

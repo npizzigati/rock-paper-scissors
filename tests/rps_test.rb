@@ -26,7 +26,7 @@ end
 
 class RPSGameTest < Minitest::Test
   def setup
-    @game = RPSGame.new
+    @game = RPSGame.new(CLIView.new)
     @move1 = Rock.new
     @move2 = Scissors.new
     @game.player1.move = @move1
@@ -40,12 +40,12 @@ class RPSGameTest < Minitest::Test
     assert_equal(expected, actual)
   end
 
-  def test_display_gory_details
+  def test_retrieve_gory_details
     expected = /cuts|covers|crushes|poisons|smashes|decapitates|
                 eats|disproves|vaporizes|crushes/x
     winner, loser = [@game.player1.move.to_s,
                      @game.player2.move.to_s]
-    actual = @game.display_gory_details(winner, loser)
+    actual = @game.retrieve_gory_details(winner, loser)
     assert_match(expected, actual)
   end
 
