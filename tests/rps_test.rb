@@ -59,10 +59,12 @@ class RPSGameTest < Minitest::Test
 end
 
 class HumanTest < Minitest::Test
-  def test_obtain_user_input
-    me = Human.new('Human')
+  def test_retrieve_user_input
+    moves = [Rock.new, Paper.new, Scissors.new,
+            Lizard.new, Spock.new]
+    view = CLIView.new
     expected = 'rock'
-    actual = simulate_stdin('r') { me.obtain_user_input }
+    actual = simulate_stdin('r') { view.retrieve_user_choice(moves) }
     assert_instance_of(Rock, actual)
     assert_equal(expected, actual.to_s)
   end
