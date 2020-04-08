@@ -1,4 +1,4 @@
-# .rubocop.yml for RB101 Lessons 6 (02 Aug 2019)
+# .rubocop.yml for non-RB101 courses (10 Dec 2019)
 
 AllCops:
   # Display cop names
@@ -14,17 +14,21 @@ AllCops:
   StyleGuideBaseURL: https://github.com/bbatsov/ruby-style-guide
   # What version of the Ruby interpreter is the inspected code intended to
   # run on? (If there is more than one, set this to the lowest version.)
-  TargetRubyVersion: 2.3
+  TargetRubyVersion: 2.4
 
-Layout/BlockComments:
+Style/BlockComments:
   Description: 'Do not use block comments.'
   Enabled: false
 
-Layout/BracesAroundHashParameters:
+Style/BracesAroundHashParameters:
   Description: Forces certain brace styles when the last argument is a hash.
   Enabled: false
 
-Layout/CommandLiteral:
+Style/ClassVars:
+  Description: 'Checks for uses of class variables.'
+  Enabled: false
+
+Style/CommandLiteral:
   Description: 'Use `` or %x around command literals.'
   Enabled: true
   # backticks: Always use backticks.
@@ -39,36 +43,37 @@ Layout/CommandLiteral:
   # are found in the command string.
   AllowInnerBackticks: false
 
-Layout/CommentAnnotation:
+Style/CommentAnnotation:
   Description: >-
     Checks formatting of special comments (TODO, FIXME, OPTIMIZE, HACK, REVIEW).
   Enabled: false
 
-Layout/Documentation:
+Style/Documentation:
   Description: 'Document classes and non-namespace modules.'
   Enabled: false
 
-Layout/DoubleNegation:
+Style/DoubleNegation:
   Description: 'Checks for uses of double negation (!!).'
   Enabled: false
 
-Layout/EmptyLineBetweenDefs:
+Style/EmptyLineBetweenDefs:
   Enabled: true
   AllowAdjacentOneLineDefs: true
 
-Layout/EmptyLiteral:
+Style/EmptyLiteral:
   Description: Prefer literals to Array.new/Hash.new/String.new.
   Enabled: false
 
-Layout/FrozenStringLiteralComment:
+Style/FrozenStringLiteralComment:
   Enabled: false
   Description: Require the addition of the frozen string literal comment.
 
-Layout/GuardClause:
+Style/GuardClause:
   Description: Check for conditionals that can be replaced with guard clauses.
-  Enabled: false
+  Enabled: true
+  MinBodyLength: 1
 
-Layout/HashSyntax:
+Style/HashSyntax:
   Description: >-
                  Prefer Ruby 1.9 hash syntax { a: 1, b: 2 } over 1.8 syntax
                  { :a => 1, :b => 2 }.
@@ -77,68 +82,68 @@ Layout/HashSyntax:
   UseHashRocketsWithSymbolValues: false
   PreferHashRocketsForNonAlnumEndingSymbols: false
 
-Layout/IfUnlessModifier:
+Style/IfUnlessModifier:
   Description: >-
                  Favor modifier if/unless usage when you have a
                  single-line body.
   Enabled: false
 
-Layout/InlineComment:
+Style/InlineComment:
   Description: Avoid inline comments.
   Enabled: false
 
-Layout/MethodCallParentheses:
+Style/MethodCallParentheses:
   Description: Do not use parentheses for method calls with no arguments.
-  Enabled: true
+  Enabled: false
 
-Layout/ModuleFunction:
+Style/ModuleFunction:
   Description: Checks for usage of `extend self` in modules.
   Enabled: false
 
-Layout/MutableConstant:
+Style/MutableConstant:
   Description: Freeze mutable constants.
   Enabled: false
 
-Layout/NegatedIf:
+Style/NegatedIf:
   Description: >-
                  Favor unless over if for negative conditions
                  (or control flow or).
   Enabled: false
 
-Layout/NegatedWhile:
+Style/NegatedWhile:
   Description: 'Favor until over while for negative conditions.'
   Enabled: false
 
-Layout/Next:
+Style/Next:
   Description: 'Use `next` to skip iteration instead of a condition at the end.'
   Enabled: false
 
-Layout/NumericLiterals:
+Style/NumericLiterals:
   Description: Add underscores to large numeric literals to improve their readability.
   Enabled: false
 
-Layout/NumericPredicate:
+Style/NumericPredicate:
   Description: >-
                  Checks for the use of predicate- or comparison methods for
                  numeric comparisons.
   Enabled: false
 
-Layout/OneLineConditional:
+Style/OneLineConditional:
   Description: Favor the ternary operator(?:) over if/then/else/end constructs.
   Enabled: false
 
-Layout/OpMethod:
+Style/OpMethod:
   Description: When defining binary operators, name the argument other.
   Enabled: false
 
-Layout/ParenthesesAroundCondition:
+Style/ParenthesesAroundCondition:
   Description: >-
                  Don't use parentheses around the condition of an
                  if/unless/while.
   Enabled: true
   AllowSafeAssignment: false
 
-Layout/PercentLiteralDelimiters:
+Style/PercentLiteralDelimiters:
   Description: 'Use `%`-literal delimiters consistently'
   Enabled: true
   PreferredDelimiters:
@@ -153,61 +158,61 @@ Layout/PercentLiteralDelimiters:
     '%W': ()
     '%x': ()
 
-Layout/PerlBackrefs:
+Style/PerlBackrefs:
   Description: Avoid Perl-style regex back references.
   Enabled: false
 
-Layout/Proc:
+Style/Proc:
   Description: Use proc instead of Proc.new.
   Enabled: false
 
-Layout/RedundantParentheses:
+Style/RedundantParentheses:
   Enabled: false
 
-Layout/RedundantReturn:
+Style/RedundantReturn:
   Description: "Don't use return where it's not required."
   Enabled: true
   # When true allows code like `return x, y`.
   AllowMultipleReturnValues: true
 
-Layout/RegexpLiteral:
+Style/RegexpLiteral:
   Description: 'Use / or %r around regular expressions.'
   Enabled: true
   EnforcedStyle: mixed
   AllowInnerSlashes: false
 
-Layout/SafeNavigation:
+Style/SafeNavigation:
   Description: >-
                   This cop transforms usages of a method call safeguarded by
                   a check for the existance of the object to
                   safe navigation (`&.`).
-  Enabled: false
+  Enabled: true
 
-Layout/SingleLineBlockParams:
+Style/SingleLineBlockParams:
   Description: Enforces the names of some block params.
   Enabled: false
 
-Layout/SingleLineMethods:
+Style/SingleLineMethods:
   Description: Avoid single-line methods.
   Enabled: false
 
-Layout/SpaceAroundEqualsInParameterDefault:
+Style/SpaceAroundEqualsInParameterDefault:
   Enabled: false
 
-Layout/StringLiterals:
+Style/StringLiterals:
   Description: Force use of single or double quotes when no interpolation
   Enabled: false
 
-Layout/SymbolArray:
+Style/SymbolArray:
   Description: 'Use %i or %I for arrays of symbols.'
   StyleGuide: '#percent-i'
   Enabled: false
 
-Layout/WhileUntilModifier:
+Style/WhileUntilModifier:
   Description: Favor modifier while/until usage when you have a single-line body.
   Enabled: false
 
-Layout/WordArray:
+Style/WordArray:
   Description: 'Use %w or %W for arrays of words.'
   Enabled: false
 
@@ -220,7 +225,8 @@ Metrics/AbcSize:
 
 Metrics/BlockLength:
   Description: Limit size of blocks.
-  Enabled: false
+  Enabled: true
+  Max: 20
 
 Metrics/ClassLength:
   Description: 'Avoid classes longer than 100 lines of code.'
@@ -237,10 +243,10 @@ Metrics/LineLength:
   - https
 
 Metrics/MethodLength:
-  Description: 'Avoid methods longer than 15 lines of code.'
+  Description: 'Avoid methods longer than 10 lines of code.'
   Enabled: true
   CountComments: false  # count full line comments?
-  Max: 15
+  Max: 10
 
 Lint/LiteralInInterpolation:
   Description: 'Avoid interpolating literals in strings'
