@@ -14,14 +14,23 @@ SENTIENTS = [{ name: 'VIKI-I', ai: :mirror_loss },
              { name: 'Skynet', ai: :mirror_win },
              { name: 'Hal', ai: :repeat }]
 
-MESSAGES = { opponent:  "Your opponent will be %s. Its " \
-                        "moves are not entirely random. Try to " \
-                        "figure out the pattern.\n\n",
+MESSAGES = { opponent:  'Your opponent will be %<name>s. Its ' \
+                        'moves are not entirely random. Try to ' \
+                        'figure out the pattern.',
              any_key:   'Press any key to continue.',
              your_move: 'Your move: (r)ock, (p)aper, (s)cissors, ' \
                         '(l)izard, (S)pock',
              play_again:'Play again (y/n)?',
-             your_name: 'Your name? (word characters only): ' }
+             your_name: 'Your name? (word characters only): ',
+             welcome:   'Welcome to Rock, Paper, Scissors, ' \
+                        'Lizard, Spock',
+             rules:     'First player to win 10 rounds wins ' \
+                        'the match.',
+             name_char_error:  'Name may not include special ' \
+                               'characters or spaces.',
+             name_limit_error: 'Name may be a maximum of 20 ' \
+                               'characters.' }
+                
 
 module Prettier
   def prettier_print(options)
@@ -73,9 +82,9 @@ class CLIView < View
     loop do
       print MESSAGES[:your_name]
       name = gets.chomp
-      break unless name.match?(/(\s)|(\W)/)
-
-      puts "\n" + 'Name may not include special characters or spaces.'
+      break unless name.match?(/(\s)|(\W)/) || name.size > 20
+      puts "\n" + MESSAGES[:name_char_error] + ' and ' +
+           MESSAGES[:name_limit_error].downcase
     end
 
   name[0].upcase + name[1..-1]
@@ -134,13 +143,13 @@ class CLIView < View
   end
 
   def display_computer_name(name)
-    puts format(MESSAGES[:opponent], name)
+    puts "\n" + format(MESSAGES[:opponent], { name: name }) + "\n"
     input_char MESSAGES[:any_key]
   end
 
   def display_welcome
     clear_screen
-    puts 'Welcome to Rock Paper Scissors' + "\n\n"
+    puts MESSAGES[:welcome] + "\n\n" + MESSAGES[:rules] + "\n\n"
   end
 
   def display_goodbye
@@ -312,14 +321,14 @@ class CursesView < View
   end
 
   def display_computer_name(name)
-    right_win.addstr format(MESSAGES[:opponent], name)
+    right_win.addstr "\n" + format(MESSAGES[:opponent],
+                                   { name: name }) + "\n"
   end
 
   def retrieve_user_name
     Curses.raw
     name = ""
     error_position = [right_win.cury + 2, right_win.curx]
-    error_message = "Name may not include special characters or spaces"
     char_limit_message = "Name may be a maximum of 20 characters"
     right_win.addstr MESSAGES[:your_name]
     start_position = [right_win.cury, right_win.curx]
@@ -342,14 +351,16 @@ class CursesView < View
         Curses.close_screen
         exit
       when /(\s)|(\W)/
-        display_error_message(entry_position, error_position, error_message)
+        display_error_message(entry_position, error_position,
+                              MESSAGES[:name_char_error])
       else
         hide_error_message(entry_position, error_position)
         right_win.addch char_input
         name << char_input
       end
       if name.size > 20
-        display_error_message(entry_position, error_position, char_limit_message)
+        display_error_message(entry_position, error_position,
+                              MESSAGES[:name_limit_error])
         right_win.delch
         name = name[0..-2]
       end
@@ -442,8 +453,8 @@ class CursesView < View
   end
 
   def display_welcome
-    right_win.addstr "Welcome to Rock Paper Scissors.\n\n" \
-                     "First player to win 10 rounds wins the match.\n\n"
+    right_win.addstr MESSAGES[:welcome] + "\n\n" +
+                     MESSAGES[:rules] + "\n\n"
     input_char MESSAGES[:any_key]
     right_win.clear
     batch_refresh right_win, right_box
@@ -692,7 +703,7 @@ end
 
 if __FILE__ == $PROGRAM_NAME
 
-  # Exit gracefully if interrupted
+  # Exit Curses gracefully if interrupted
   def onsig(sig)
     Curses.close_screen
     exit sig
