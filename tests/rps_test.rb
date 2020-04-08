@@ -25,53 +25,61 @@ class MoveTest < Minitest::Test
 end
 
 class RPSGameTest < Minitest::Test
+
   def setup
-    @game = RPSGame.new(CLIView.new)
-    @move1 = Rock.new
-    @move2 = Scissors.new
-    @game.player1.move = @move1
-    @game.player2.move = @move2
+    @view = CLIView.new
+    @view.stub :retrieve_user_name, "test_user" do
+      @view.stub :display_computer_name, "" do
+        @game = RPSGame.new(@view)
+        @game.player1.move = Rock.new
+        @game.player2.move = Scissors.new
+      end
+    end
   end
 
   def test_score_increment
-    @game.fight
-    expected = 1
-    actual = @game.player1.score
-    assert_equal(expected, actual)
+    @game.view.stub :input_char, "r" do
+      @game.play_round
+      expected = 1
+      actual = @game.player1.score
+      assert_equal(expected, actual)
+    end
   end
 
-  def test_retrieve_gory_details
+  def test_retrieve_gore
     expected = /cuts|covers|crushes|poisons|smashes|decapitates|
                 eats|disproves|vaporizes|crushes/x
     winner, loser = [@game.player1.move.to_s,
-                     @game.player2.move.to_s]
-    actual = @game.retrieve_gory_details(winner, loser)
+                    @game.player2.move.to_s]
+    actual = @game.retrieve_gore(winner, loser)
     assert_match(expected, actual)
   end
 
-  def test_play_final_score
-    while @game.player1.score < 10 && @game.player2.score < 10
-      @game.fight
-    end
-    @game.match_winner = @game.player1.score == 10 ? @game.player1 : @game.player2
-    refute_equal(nil, @game.match_winner)
-  end
+  # def test_play_match_final_score
+  #   @game.view.stub :input_char, "r" do
+  #     while @game.player1.score < 10 && @game.player2.score < 10
+  #       @game.play_round
+  #     end
+  #     winner = @game.player1.score == 10 ? @game.player1 : @game.player2
+  #     refute_equal(nil, winner)
+  #   end
+  # end
 end
 
 class HumanTest < Minitest::Test
   def test_retrieve_user_input
-    moves = [Rock.new, Paper.new, Scissors.new,
-            Lizard.new, Spock.new]
+    move_options = [Rock.new, Paper.new, Scissors.new,
+             Lizard.new, Spock.new]
     view = CLIView.new
     expected = 'rock'
-    actual = simulate_stdin('r') { view.retrieve_user_choice(moves) }
+    actual = simulate_stdin('r') { view.retrieve_user_move(move_options) }
     assert_instance_of(Rock, actual)
     assert_equal(expected, actual.to_s)
   end
 end
 
 class ValidatorTest < Minitest::Test
-  include Validator
+  include Prettier
   def test_prettier_print_2_items
     array = %w(y n)
     expected = 'y or n'
@@ -84,11 +92,5 @@ class ValidatorTest < Minitest::Test
     expected = 'y, n or q'
     actual = prettier_print(array)
     assert_equal(expected, actual)
-  end
-
-  def test_wrong_input
-    assert_output(/Please enter/) do
-      simulate_stdin('r', 'y') { input('Like oranges?', %w(y n)) }
-    end
   end
 end
