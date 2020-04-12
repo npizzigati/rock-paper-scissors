@@ -9,6 +9,7 @@ begin
   CURSES = true
   start_game = -> { RPSGame.new(CursesView.new).play_match }
 rescue LoadError
+  CURSES = false
   start_game = -> { RPSGame.new(CLIView.new).play_match }
 end
 
@@ -77,7 +78,7 @@ class CLIView < View
   end
 
   def name_valid?(name)
-    name !~ (/(\s)|(\W)/) && name.size <= 20
+    name !~ (/(\s)|(\W)/) && name.size <= 20 && !name.empty?
   end
 
   def retrieve_user_name
@@ -108,8 +109,7 @@ class CLIView < View
     puts "#{player2.name}: #{player2.score}\n\n"
   end
 
-  def display_round_info(player1, player2, name_winner,
-                         round_num, gore)
+  def display_round_info(player1, player2, name_winner, round_num, gore)
     display_match_status(round_num, player1, player2)
 
     if !name_winner
@@ -118,13 +118,12 @@ class CLIView < View
     else
       puts "#{player1.name} played #{player1.move} and " \
            "#{player2.name} played #{player2.move}.\n" \
-           "#{gore.capitalize}. " \
-           "#{name_winner} wins!\n"
+           "#{gore}. #{name_winner} wins!\n"
     end
   end
 
   def display_match_results(player1, player2, name_winner)
-    puts "Final match results:\n"
+    puts "\nFinal match results:\n"
     puts "#{player1.name} won #{player1.score} rounds\n"
     puts "#{player2.name} won #{player2.score} rounds\n"
     puts "#{name_winner} has won the match!\n\n"
@@ -328,8 +327,7 @@ class CursesView < View
   end
 
   def display_computer_name(name)
-    @right_win.addstr "\n" + format(MSG[:opponent],
-                                    { name: name }) + "\n\n"
+    @right_win.addstr format(MSG[:opponent], { name: name }) + "\n\n"
   end
 
   def display_match_status(round_num, player1, player2)
@@ -509,7 +507,7 @@ class CursesView < View
   def print_win_message(player1, player2, name_winner, gore)
     @bolder.print(@right_win, "#{player1.name} played ^#{player1.move}^. " \
                   "#{player2.name} played ^#{player2.move}^. " \
-                  "#{gore.capitalize}. #{name_winner} wins!\n\n")
+                  "#{gore}. #{name_winner} wins!\n\n")
   end
 
   def print_tie_message(player1, player2)
@@ -804,14 +802,14 @@ class RPSGame
   end
 
   def retrieve_gore(winning_move, losing_move)
-    gore = ["scissors cuts paper", "paper covers rock",
-            "rock crushes lizard", "lizard poisons Spock",
-            "Spock smashes scissors", "scissors decapitates lizard",
-            "lizard eats paper", "paper disproves Spock",
-            "Spock vaporizes rock", "rock crushes scissors"]
-    gore.filter do |e|
+    options = ["Scissors cuts paper", "Paper covers rock",
+               "Rock crushes lizard", "Lizard poisons Spock",
+               "Spock smashes scissors", "Scissors decapitates lizard",
+               "Lizard eats paper", "Paper disproves Spock",
+               "Spock vaporizes rock", "Rock crushes scissors"]
+    options.filter do |e|
       words = e.split
-      words[0] == winning_move && words[2] == losing_move
+      words[0].casecmp?(winning_move) && words[2].casecmp?(losing_move)
     end[0]
   end
 end
