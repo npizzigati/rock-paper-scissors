@@ -4,43 +4,44 @@ require 'io/console'
 # If curses not installed, fall back on CLI view
 begin
   require 'curses'
-  # start_game = lambda { RPSGame.new(CursesView.new).play_match }
-  start_game = lambda { RPSGame.new(CLIView.new).play_match }
-rescue
-  start_game = lambda { RPSGame.new(CLIView.new).play_match }
+  BOLD = Curses::A_BOLD
+  UNDERLINE = Curses::A_UNDERLINE
+  # start_game = -> { RPSGame.new(CursesView.new).play_match }
+  start_game = -> { RPSGame.new(CLIView.new).play_match }
+rescue LoadError
+  start_game = -> { RPSGame.new(CLIView.new).play_match }
 end
 
 SENTIENTS = [{ name: 'VIKI-I', ai: :mirror_loss },
              { name: 'Skynet', ai: :mirror_win },
              { name: 'Hal', ai: :repeat }]
 
-MESSAGES = { opponent:  'Your opponent will be %<name>s. Its ' \
-                        'moves are not entirely random. Try to ' \
-                        'figure out the pattern.',
-             any_key:   'Press any key to continue.',
-             your_move: 'Your move: (r)ock, (p)aper, (s)cissors, ' \
-                        '(l)izard, (S)pock',
-             play_again:'Play again (y/n)?',
-             your_name: 'Your name? (word characters only): ',
-             welcome:   'Welcome to Rock, Paper, Scissors, ' \
-                        'Lizard, Spock',
-             rules:     'First player to win 10 rounds wins ' \
-                        'the match.',
+MSG =      { opponent:         'Your opponent will be %<name>s. Its ' \
+                               'moves are not entirely random. Try to ' \
+                               'figure out the pattern.',
+             any_key:          'Press any key to continue.',
+             your_move:        'Your move: (r)ock, (p)aper, (s)cissors, ' \
+                               '(l)izard, (S)pock',
+             play_again:       'Play again (y/n)?',
+             your_name:        'Your name? (word characters only): ',
+             welcome:          'Welcome to Rock, Paper, Scissors, ' \
+                               'Lizard, Spock',
+             rules:            'First player to win 10 rounds wins ' \
+                               'the match.',
              name_char_error:  'Name may not include special ' \
                                'characters or spaces.',
              name_limit_error: 'Name may be a maximum of 20 ' \
                                'characters.' }
-                
 
 module Prettier
   def prettier_print(options)
-    options = options.map { |option| option != ' ' ? option : 'space' }
+    options = options.map { |option| option == ' ' ? 'space' : option }
     case options.size
     when 1
       options[0]
     when 2
       "#{options[0]} or #{options[1]}"
-    when (3...)
+    when 3..10
       options[0..-2].join(', ') + ' or ' + options[-1]
     end
   end
@@ -48,16 +49,14 @@ end
 
 class View
   def retrieve_user_move(move_options)
-    choice = input_char(MESSAGES[:your_move],
-                   %w(r p s l S))
+    choice = input_char(MSG[:your_move], %w(r p s l S))
     move_options[%w(r p s l S).index(choice)]
   end
 
-  def play_again
-    response = input_char(MESSAGES[:play_again], %w(y n))
-    response == 'y' ? true : false
+  def play_again?
+    response = input_char(MSG[:play_again], %w(y n))
+    response == 'y'
   end
-
 end
 
 class CLIView < View
@@ -68,26 +67,28 @@ class CLIView < View
     loop do
       entered = STDIN.getch
       quit if entered == "\u0003" # exit program on Ctrl-c
-      return entered unless options
-      if options.include? entered
-        return entered
-      else
-        puts "Please enter #{prettier_print(options)}"
-      end
+      return entered if !options || options.include?(entered)
+
+      puts "Please enter #{prettier_print(options)}"
     end
+  end
+
+  def name_valid?(name)
+    name !~ (/(\s)|(\W)/) && name.size <= 20
   end
 
   def retrieve_user_name
     name = ""
     loop do
-      print MESSAGES[:your_name]
+      print MSG[:your_name]
       name = gets.chomp
-      break unless name.match?(/(\s)|(\W)/) || name.size > 20
-      puts "\n" + MESSAGES[:name_char_error] + ' and ' +
-           MESSAGES[:name_limit_error].downcase
+      break if name_valid?(name)
+
+      puts "\n • " + MSG[:name_char_error]
+      puts " • " + MSG[:name_limit_error] + "\n\n"
     end
 
-  name[0].upcase + name[1..-1]
+    name[0].upcase + name[1..-1]
   end
 
   def print_in_box(string)
@@ -104,8 +105,8 @@ class CLIView < View
     puts "#{player2.name}: #{player2.score}\n\n"
   end
 
-  def display_round_details(player1, player2, name_winner,
-                            round_num, gore)
+  def display_round_info(player1, player2, name_winner,
+                         round_num, gore)
     display_match_status(round_num, player1, player2)
 
     if !name_winner
@@ -126,30 +127,46 @@ class CLIView < View
     puts "#{name_winner} has won the match!\n\n"
   end
 
-  def display_move_history(round_num, player1, player2, name_winner)
+  def display_history?
     puts "\n"
-    review_history = input_char('Press space to continue, h to review' \
-                                ' move history or q to quit', [' ', 'h', 'q'])
-    return if review_history == ' '
-    quit if review_history == 'q'
-    clear_screen
-    puts "Move history (#{player1.name} vs. #{player2.name}):\n"
-    1.upto(round_num) do |idx| 
-      puts "Round #{idx}: #{player1.move_history[idx][:move]} " \
-           "vs. #{player2.move_history[idx][:move]}\n"
+    answer = input_char('Press space to continue or h to review' \
+                                ' move history', [' ', 'h'])
+    answer == 'h'
+  end
+
+  def won_round?(player, round)
+    player.move_history[round][:won]
+  end
+
+  def list_history(final_round_in_history, player1, player2)
+    1.upto(final_round_in_history) do |round|
+      puts "Round #{round}: #{player1.move_history[round][:move]}" +
+           (won_round?(player1, round) ? "✓" : "") +
+           " vs. #{player2.move_history[round][:move]}" +
+           (won_round?(player2, round) ? "✓" : "") + "\n"
     end
-    puts "\n"
-    input_char MESSAGES[:any_key]
+  end
+
+  def display_move_history(final_round_in_history, player1,
+                           player2, _name_winner)
+    return unless display_history?
+
+    clear_screen
+    puts "Move history (#{player1.name} vs. #{player2.name}):\n\n"
+    puts "(Check mark beside move indicates winning move.)"
+    list_history(final_round_in_history, player1, player2)
+    input_char MSG[:any_key]
+    clear_screen
   end
 
   def display_computer_name(name)
-    puts "\n" + format(MESSAGES[:opponent], { name: name }) + "\n"
-    input_char MESSAGES[:any_key]
+    puts "\n" + format(MSG[:opponent], { name: name }) + "\n\n"
+    input_char MSG[:any_key]
   end
 
   def display_welcome
     clear_screen
-    puts MESSAGES[:welcome] + "\n\n" + MESSAGES[:rules] + "\n\n"
+    puts MSG[:welcome] + "\n\n" + MSG[:rules] + "\n\n"
   end
 
   def display_goodbye
@@ -172,14 +189,132 @@ class CLIView < View
   end
 end
 
+class CursesNameInput
+  attr_accessor :view, :error_position, :start_position, :right_win,
+                :right_box, :entry_position, :name
+
+  def initialize(view)
+    self.view = view
+    self.right_win = view.right_win
+    self.right_box = view.right_box
+    self.name = ""
+    self.error_position = [right_win.cury + 2, right_win.curx]
+    Curses.raw
+    right_win.addstr MSG[:your_name]
+    self.start_position = [right_win.cury, right_win.curx]
+  end
+
+  def retrieve_user_name
+    loop do
+      char = retrieve_valid_keystroke
+      process_special_keystrokes(char)
+      next if char == 127 # backspace
+      break if char == 10 && !name.empty? # enter at word end
+
+      add_char(char) if char != 10 # don't add enter
+      enforce_size_limit
+    end
+    cleanup
+    name[0].upcase + name[1..-1]
+  end
+
+  private
+
+  def add_char(char)
+    hide_error
+    right_win.addch char
+    view.batch_refresh right_win, right_box
+    name << char
+  end
+
+  def enforce_size_limit
+    return unless name.size > 20
+
+    display_error(entry_position, error_position,
+                  MSG[:name_limit_error])
+    right_win.delch
+    self.name = name[0..-2]
+  end
+
+  def process_special_keystrokes(char)
+    case char
+    when 127 # backspace
+      backspace
+    when 3 # ctrl-c
+      view.quit
+    end
+  end
+
+  def non_word_char?(char)
+    char.match?(/(\s)|(\W)/)
+  end
+
+  def non_integer?(char)
+    char.class != Integer
+  end
+
+  def retrieve_single_keystroke
+    clear_stdin
+    right_win.getch
+  end
+
+  def retrieve_valid_keystroke
+    loop do
+      self.entry_position = [right_win.cury, right_win.curx]
+      char = retrieve_single_keystroke
+      next if control_char?(char)
+
+      return char unless non_integer?(char) && non_word_char?(char)
+
+      display_error(entry_position, error_position, MSG[:name_char_error])
+    end
+  end
+
+  def control_char?(char)
+    char.size > 1 && !([127, 10, 3].include?(char))
+  end
+
+  def backspace
+    return if entry_position == start_position
+
+    hide_error
+    y, x = *entry_position
+    right_win.setpos y, x - 1
+    right_win.delch
+    view.batch_refresh right_win, right_box
+    self.name = name[0..-2]
+  end
+
+  def hide_error
+    right_win.setpos(*error_position)
+    right_win.deleteln if right_win.inch
+    right_win.setpos(*entry_position)
+    view.batch_refresh right_win, right_box
+  end
+
+  def display_error(entry_position, error_position, message)
+    right_win.setpos(*error_position)
+    view.apply_attribute(right_win, BOLD) { right_win.addstr message }
+    right_win.setpos(*entry_position)
+    view.batch_refresh right_win, right_box
+  end
+
+  def cleanup
+    Curses.cbreak
+    right_win.clear
+    @view.batch_refresh @right_win, @right_box
+  end
+
+  def clear_stdin
+    $stdin.getc while $stdin.ready?
+  end
+end
+
 class CursesView < View
   include Prettier
 
-  BOLD = Curses::A_BOLD
-  UNDERLINE = Curses::A_UNDERLINE
-
   attr_accessor :left_top_win, :left_bottom_win, :right_win,
-                :right_win, :left_box, :right_box
+                :left_box, :right_box, :bolder, :underliner
 
   def initialize
     Curses.init_screen
@@ -190,6 +325,8 @@ class CursesView < View
     create_inner_windows
     add_box_headings
     batch_refresh Curses, left_box, right_box
+    self.bolder = Formatter.new(self, attribute: BOLD)
+    self.underliner = Formatter.new(self, attribute: UNDERLINE)
   end
 
   def add_box_headings
@@ -203,224 +340,147 @@ class CursesView < View
   end
 
   def create_border_boxes
-    y_size = Curses.stdscr.maxy
-    @wide_x = (Curses.stdscr.maxx * 0.22).round
-    narrow_x = Curses.stdscr.maxx - @wide_x - 2
-    self.left_box = Curses::Window.new(y_size,
-                                       @wide_x,
+    @height = Curses.stdscr.maxy
+    @left_width = (Curses.stdscr.maxx * 0.22).round
+    @right_width = Curses.stdscr.maxx - @left_width - 2
+
+    create_left_box
+    create_right_box
+  end
+
+  def create_left_box
+    self.left_box = Curses::Window.new(@height,
+                                       @left_width,
                                        0,
                                        0)
     apply_attribute(left_box, Curses::A_ALTCHARSET) do
       left_box.box 120, 113
     end
+  end
 
-    self.right_box = Curses::Window.new(y_size,
-                                        narrow_x,
+  def create_right_box
+    self.right_box = Curses::Window.new(@height,
+                                        @right_width,
                                         0,
-                                        @wide_x + 1)
+                                        @left_width + 1)
     apply_attribute(right_box, Curses::A_ALTCHARSET) do
       right_box.box 120, 113
     end
   end
 
-  def create_inner_windows
-    y_size = Curses.stdscr.maxy
-    horiz_split = ((left_box.maxy - 4) * 0.20).round
-    self.left_top_win = left_box.subwin(horiz_split - 1,
+  def create_left_top_window
+    self.left_top_win = left_box.subwin(@horiz_split - 1,
                                         left_box.maxx - 4,
                                         2,
                                         2)
+  end
 
-    self.left_bottom_win = left_box.subwin(y_size - horiz_split - 4,
+  def create_left_bottom_window
+    self.left_bottom_win = left_box.subwin(@height - @horiz_split - 4,
                                            left_box.maxx - 4,
-                                           horiz_split + 1,
+                                           @horiz_split + 1,
                                            2)
+  end
 
+  def create_right_window
     self.right_win = right_box.subwin(right_box.maxy - 4,
                                       right_box.maxx - 4,
                                       2,
-                                      @wide_x + 3)
+                                      @left_width + 3)
+  end
+
+  def create_inner_windows
+    @height = Curses.stdscr.maxy
+    @horiz_split = ((left_box.maxy - 4) * 0.20).round
+    create_left_top_window
+    create_left_bottom_window
+    create_right_window
+  end
+
+  def refresh_all
+    windows = [left_box, right_box, left_top_win, left_bottom_win,
+               right_win]
+    batch_refresh(*windows)
   end
 
   def batch_refresh(*windows)
-    windows.each do |window|
-      window.refresh
-    end
+    windows.each(&:refresh)
   end
 
-  def apply_attribute(window, attribute, &block)
+  def apply_attribute(window, attribute)
     window.attron attribute
     yield
     window.attroff attribute
   end
 
-  def print_format(window, attribute, string)
-    marker = '^'
-    formatted_chars = []
-    idx = 0
-    chars = string.chars
-    while idx < string.size
-      if string[idx] != marker
-        window.addch chars[idx]
-        idx += 1
-      else
-        idx += 1
-        while string[idx] != marker and idx < string.size
-          formatted_chars << string[idx]
-          idx += 1
-        end
-        apply_attribute(window, attribute) do
-          window.addstr formatted_chars.join
-        end
-        formatted_chars = []
-        idx += 1
-      end
-    end
-  end
-  
-  def input_char(prompt, options=nil)
-    wrong_answer_count = 0
-    
-    right_win.addstr prompt
-    right_win.addstr "\n\n"
+  def display_prompt(prompt)
+    right_win.addstr "#{prompt}\n\n"
     batch_refresh right_win, right_box
+  end
+
+  def input_char(prompt, options=nil)
+    display_prompt(prompt)
+    error_message_already_displayed = false
     loop do
       entered = right_win.getch
-      return entered unless options
-      return entered if options.include? entered
-      if wrong_answer_count < 1
-        apply_attribute(right_win, BOLD) do
-          right_win.addstr "Please enter " \
-                           "#{prettier_print(options)}\n"
-        end
-        batch_refresh right_win, right_box
-        wrong_answer_count += 1
+      return entered if !options || options.include?(entered)
+
+      if !error_message_already_displayed
+        bolder.print(right_win, "^Please enter #{prettier_print(options)}^\n")
+        error_message_already_displayed = true
       end
     end
-  end
-
-  def backspace(start_position, entry_position)
-    return if entry_position == start_position
-    y, x = *entry_position
-    right_win.setpos y, x - 1
-    right_win.delch
-  end
-
-  def hide_error_message(entry_position, error_position)
-    right_win.setpos(*error_position)
-    right_win.deleteln if right_win.inch
-    right_win.setpos(*entry_position)
-    batch_refresh right_win, right_box
-  end
-
-
-  def display_error_message(entry_position, error_position, message)
-    right_win.setpos(*error_position)
-    apply_attribute(right_win, BOLD) { right_win.addstr message }
-    right_win.setpos(*entry_position)
   end
 
   def display_computer_name(name)
-    right_win.addstr "\n" + format(MESSAGES[:opponent],
-                                   { name: name }) + "\n"
-  end
-
-  def retrieve_user_name
-    Curses.raw
-    name = ""
-    error_position = [right_win.cury + 2, right_win.curx]
-    char_limit_message = "Name may be a maximum of 20 characters"
-    right_win.addstr MESSAGES[:your_name]
-    start_position = [right_win.cury, right_win.curx]
-    loop do
-      char_input = right_win.getch
-      entry_position = [right_win.cury, right_win.curx]
-      # Ignore function keys
-      if char_input.size > 1 and !([127, 10, 3].include? char_input)
-        clear_stdin
-        next
-      end
-      case char_input
-      when 127 # backspace
-        hide_error_message(entry_position, error_position)
-        backspace(start_position, entry_position)
-        name = name[0..-2]
-      when 10 # enter
-        break
-      when 3 # ctrl-c 
-        Curses.close_screen
-        exit
-      when /(\s)|(\W)/
-        display_error_message(entry_position, error_position,
-                              MESSAGES[:name_char_error])
-      else
-        hide_error_message(entry_position, error_position)
-        right_win.addch char_input
-        name << char_input
-      end
-      if name.size > 20
-        display_error_message(entry_position, error_position,
-                              MESSAGES[:name_limit_error])
-        right_win.delch
-        name = name[0..-2]
-      end
-    batch_refresh right_win, right_box
-    end
-    Curses.cbreak
-    right_win.clear
-    batch_refresh right_win, right_box
-    name[0].upcase + name[1..-1]
-  end
-
-  def clear_stdin
-    $stdin.getc while $stdin.ready?
+    right_win.addstr "\n" + format(MSG[:opponent],
+                                   { name: name }) + "\n\n"
   end
 
   def display_match_status(round_num, player1, player2)
     left_top_win.clear
-    batch_refresh left_top_win, left_box
-    apply_attribute(left_top_win, BOLD) do
-      left_top_win.addstr "Round #{round_num}\n\n"
-    end
-    apply_attribute(left_top_win, UNDERLINE) do
-      left_top_win.addstr "Current score\n"
-    end
-    left_top_win.addstr "#{player1.name}: #{player1.score}\n"
-    left_top_win.addstr "#{player2.name}: #{player2.score}\n"
+    bolder.print(left_top_win, "^Round #{round_num}\n\n^")
+    underliner.print(left_top_win, "^Current score\n^")
+    left_top_win.addstr "#{player1.name}: #{player1.score}\n" \
+                        "#{player2.name}: #{player2.score}\n"
     batch_refresh left_top_win, left_box
   end
 
-  def display_round_details(player1, player2, name_winner,
-                            round_num, gore)
+  def display_round_info(player1, player2, name_winner, round_num, gore)
     right_win.clear
-    batch_refresh right_win, right_box
 
     if player1.move == player2.move
-      print_format(right_win, BOLD,
-                      "#{player1.name} and #{player2.name} " \
-                      "both played #{player1.move}. " \
-                      "^Tie!^\n\n")
+      print_tie_message(player1, player2)
     else
-      print_format(right_win, BOLD,
-                      "#{player1.name} played ^#{player1.move}^. " \
-                      "#{player2.name} played ^#{player2.move}^. " \
-                      "#{gore.capitalize}. " \
-                      "#{name_winner} wins!\n\n")
+      print_win_message(player1, player2, name_winner, gore)
     end
-     
+
     display_match_status(round_num, player1, player2)
     batch_refresh right_win, right_box
   end
 
+  def print_win_message(player1, player2, name_winner, gore)
+    bolder.print(right_win, "#{player1.name} played ^#{player1.move}^. " \
+                  "#{player2.name} played ^#{player2.move}^. " \
+                  "#{gore.capitalize}. #{name_winner} wins!\n\n")
+  end
+
+  def print_tie_message(player1, player2)
+    bolder.print(right_win, "#{player1.name} and #{player2.name} " \
+                  "both played #{player1.move}. ^Tie!^\n\n")
+  end
+
   def space_to_continue(player1, player2)
-    if player1.score < 10 and player2.score < 10
-      continue_or_quit = input_char("Press space to continue on to next round or q to quit.", [" ", "q"])
-      if continue_or_quit == "q"
-        quit
-      end
-      right_win.clear
-      batch_refresh right_win, right_box
+    return unless player1.score < 10 && player2.score < 10
+
+    continue_or_quit = input_char("Press space to continue to " \
+                                  "next round or q to quit.",
+                                  [" ", "q"])
+    if continue_or_quit == "q"
+      quit
     end
+    right_win.clear
+    batch_refresh right_win, right_box
   end
 
   def display_match_results(player1, player2, name_winner)
@@ -432,30 +492,42 @@ class CursesView < View
   end
 
   def display_move_history(round_num, player1, player2, name_winner)
-    if round_num == 1
-      apply_attribute(left_bottom_win, UNDERLINE) do
-        left_bottom_win.addstr "Move history (P1 vs. P2)\n" 
-      end
-    end
+    print_history_heading if round_num == 1
     space = " " * (round_num < 10 ? 2 : 1)
     if name_winner == player1.name
-      print_format(left_bottom_win, BOLD, "R#{round_num}:#{space}" \
-                   "^#{player1.move}^ vs. #{player2.move}\n")
+      print_history_p1_win(round_num, player1, player2, space)
     elsif name_winner == player2.name
-      print_format(left_bottom_win, BOLD, "R#{round_num}:#{space}" \
-                   "#{player1.move} vs. ^#{player2.move}^\n")
+      print_history_p2_win(round_num, player1, player2, space)
     else
-      left_bottom_win.addstr "R#{round_num}:#{space}" \
-                             "#{player1.move} vs. #{player2.move}\n"
+      print_history_tie(round_num, player1, player2, space)
     end
-    batch_refresh left_bottom_win, left_box
     space_to_continue(player1, player2)
   end
 
+  def print_history_p1_win(round_num, player1, player2, space)
+    bolder.print(left_bottom_win, "R#{round_num}:#{space}" \
+                "^#{player1.move}^ vs. #{player2.move}\n", false)
+  end
+
+  def print_history_p2_win(round_num, player1, player2, space)
+    bolder.print(left_bottom_win, "R#{round_num}:#{space}" \
+                "#{player1.move} vs. ^#{player2.move}^\n", false)
+  end
+
+  def print_history_tie(round_num, player1, player2, space)
+    left_bottom_win.addstr "R#{round_num}:#{space}" \
+                            "#{player1.move} vs. #{player2.move}\n"
+  end
+
+  def print_history_heading
+    underliner.print(left_bottom_win, "^Move history (P1 vs. P2)^\n",
+                     false)
+  end
+
   def display_welcome
-    right_win.addstr MESSAGES[:welcome] + "\n\n" +
-                     MESSAGES[:rules] + "\n\n"
-    input_char MESSAGES[:any_key]
+    right_win.addstr MSG[:welcome] + "\n\n" +
+                     MSG[:rules] + "\n\n"
+    input_char MSG[:any_key]
     right_win.clear
     batch_refresh right_win, right_box
   end
@@ -476,6 +548,39 @@ class CursesView < View
     display_goodbye
     Curses.close_screen
     exit
+  end
+end
+
+class Formatter
+  attr_accessor :marker, :attribute, :idx
+
+  def initialize(view, marker: '^', attribute: BOLD)
+    self.marker = marker
+    self.attribute = attribute
+    @view = view
+  end
+
+  def print(window, string, refresh=true)
+    self.idx = 0
+    while idx < string.size
+      if string[idx] != marker
+        window.addch string[idx]
+      else
+        print_chars_between_markers(window, string)
+      end
+      self.idx += 1
+    end
+    @view.refresh_all if refresh == true
+  end
+
+  def print_chars_between_markers(window, string)
+    self.idx += 1
+    while string[idx] != marker && idx < string.size
+      @view.apply_attribute(window, attribute) do
+        window.addch string[idx]
+      end
+      self.idx += 1
+    end
   end
 end
 
@@ -528,7 +633,7 @@ class Player
   end
 
   def update_move_history(round_num)
-    self.move_history[round_num] = {move: move, won: false}
+    move_history[round_num] = { move: move, won: false }
   end
 
   def to_s
@@ -539,7 +644,11 @@ end
 class Human < Player
   def initialize(view)
     super(view)
-    self.name = view.retrieve_user_name
+    if view.class == CursesView
+      self.name = CursesNameInput.new(view).retrieve_user_name
+    else
+      self.name = view.retrieve_user_name  
+    end
   end
 
   def choose_move(move_options, round_num)
@@ -585,123 +694,134 @@ class Computer < Player
 
   def ai_repeat(move_options, round_num)
     previous_move = move_history[round_num - 1]
-    if previous_move[:won]
-      self.move = previous_move[:move]
-    else
-      self.move = move_options.sample
-    end
+    self.move = if previous_move[:won]
+                  previous_move[:move]
+                else
+                  move_options.sample
+                end
   end
 
   def ai_mirror_win(move_options, round_num)
     previous_human_turn = human_move_history[round_num - 1]
-    if previous_human_turn[:won]
-      self.move = previous_human_turn[:move]
-    else
-      self.move = move_options.sample
-    end
+    self.move = if previous_human_turn[:won]
+                  previous_human_turn[:move]
+                else
+                  move_options.sample
+                end
   end
 
   def ai_mirror_loss(move_options, round_num)
     previous_human_move = human_move_history[round_num - 1]
-    if !previous_human_move[:won]
-      self.move = previous_human_move[:move]
-    else
-      self.move = move_options.sample
-    end
+    self.move = if !previous_human_move[:won]
+                  previous_human_move[:move]
+                else
+                  move_options.sample
+                end
   end
 end
 
 # Orchestration engine
 class RPSGame
-  attr_accessor :player1, :player2, :view,
-                :round_num, :move_options
-
   def initialize(view)
     # TODO: add names for human and computer
     # ask human and select randomly for computer
-    self.view = view
-    view.display_welcome
-    self.move_options = [Rock.new, Paper.new, Scissors.new,
-                         Lizard.new, Spock.new]
-    self.player1 = Human.new(view)
-    self.player2 = Computer.new(view, player1.move_history)
-    self.round_num = 1
+    @view = view
+    @view.display_welcome
+    @move_options = [Rock.new, Paper.new, Scissors.new,
+                     Lizard.new, Spock.new]
+    @player1 = Human.new(@view)
+    @player2 = Computer.new(@view, @player1.move_history)
+    @round_num = 1
   end
 
   def play_match
     loop do
-      while player1.score < 10 && player2.score < 10
-        view.display_match_status(round_num, player1, player2)
-        play_round
-      end
-      if player1.score > player2.score
-        name_winner = player1.name
-      else
-        name_winner = player2.name
-      end
-      view.display_match_results(player1, player2, name_winner)
-      break unless view.play_again
-      reset_match_values
-      view.clear_all
-    end
+      play_rounds
+      @view.display_match_results(@player1, @player2, determine_match_winner)
+      break unless @view.play_again?
 
-    view.quit
+      reset_match
+    end
+    @view.quit
   end
 
-  def play_round
-    player1.choose_move(move_options, round_num)
-    player2.choose_move(move_options, round_num)
-    if player1.move > player2.move
-      winner = player1
-      loser = player2
-      player1.move_history[round_num][:won] = true
-    elsif player2.move > player1.move
-      winner = player2
-      loser = player1
-      player2.move_history[round_num][:won] = true
-    end
+  private
 
+  def play_rounds
+    while @player1.score < 10 && @player2.score < 10
+      @view.display_match_status(@round_num, @player1, @player2)
+      play_individual_round
+    end
+  end
+
+  def determine_match_winner
+    @player1.score > @player2.score ? @player1.name : @player2.name
+  end
+
+  def reset_match
+    reset_match_values
+    @view.clear_all
+  end
+
+  def choose_moves
+    @player1.choose_move(@move_options, @round_num)
+    @player2.choose_move(@move_options, @round_num)
+  end
+
+  def play_individual_round
+    choose_moves
+    winner, loser = determine_winner_and_loser
     if winner
       winner.score += 1
-      gore = retrieve_gore(winner.move.to_s,
-                           loser.move.to_s)
-      name_winner = winner.name
+      winner.move_history[@round_num][:won] = true
+      gore = retrieve_gore(winner.move.to_s, loser.move.to_s)
     else
       gore = nil
-      name_winner = nil
     end
 
-    view.display_round_details(player1, player2, name_winner,
-                               round_num, gore)
-    view.display_move_history(round_num, player1, player2,
-                             name_winner)
-    self.round_num += 1
+    winner ? final_round_tasks(winner.name, gore) : final_round_tasks(nil, gore)
+  end
+
+  def determine_winner_and_loser
+    winner = nil
+    loser = nil
+    if @player1.move > @player2.move
+      winner = @player1
+      loser = @player2
+    elsif @player2.move > @player1.move
+      winner = @player2
+      loser = @player1
+    end
+    [winner, loser]
+  end
+
+  def final_round_tasks(name_winner, gore)
+    @view.display_round_info(@player1, @player2, name_winner, @round_num, gore)
+    @view.display_move_history(@round_num, @player1, @player2, name_winner)
+    @round_num += 1
   end
 
   def reset_match_values
-    self.player1.score = 0
-    self.player2.score = 0
-    self.round_num = 1
+    @player1.score = 0
+    @player2.score = 0
+    @round_num = 1
   end
 
   def retrieve_gore(winning_move, losing_move)
     gore = ["scissors cuts paper", "paper covers rock",
-               "rock crushes lizard", "lizard poisons Spock",
-               "Spock smashes scissors",
-               "scissors decapitates lizard",
-               "lizard eats paper", "paper disproves Spock",
-               "Spock vaporizes rock", "rock crushes scissors"]
+            "rock crushes lizard", "lizard poisons Spock",
+            "Spock smashes scissors",
+            "scissors decapitates lizard",
+            "lizard eats paper", "paper disproves Spock",
+            "Spock vaporizes rock", "rock crushes scissors"]
     gore.filter do |e|
       words = e.split
       words[0] == winning_move && words[2] == losing_move
     end[0]
   end
-
-  def quit
-  end
 end
 
-if __FILE__ == $PROGRAM_NAME
+if $PROGRAM_NAME == __FILE__
 
   # Exit Curses gracefully if interrupted
   def onsig(sig)
@@ -709,8 +829,8 @@ if __FILE__ == $PROGRAM_NAME
     exit sig
   end
 
-  for i in %w[HUP INT QUIT TERM]
-    if trap(i, "SIG_IGN") != 0 then  # 0 for SIG_IGN
+  %w(HUP INT QUIT TERM).each do |i|
+    if trap(i, "SIG_IGN") != 0 # 0 for SIG_IGN
       trap(i) { |sig| onsig(sig) }
     end
   end
